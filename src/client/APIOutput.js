@@ -4,14 +4,15 @@ import ReactDOM from 'react-dom';
 import { withStyles } from '@material-ui/core/styles';
 import Typography from '@material-ui/core/Typography';
 import Paper from '@material-ui/core/Paper';
+import { getJSON } from './api.js';
 
 const styles = theme => ({
   paper: {
     flexGrow: 1,
     height: '40vh',
   	overflowY: 'scroll',
-    margin: theme.spacing.unit,
-    padding: theme.spacing.unit,
+    margin: theme.spacing.unit * 2,
+    padding: theme.spacing.unit * 2,
   },
 });
 
@@ -20,37 +21,17 @@ class APIOutput extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      name: '',
-      multiline: 'Controlled',
-      outputText: '',
-      newText: '',
-      newTranslation: '',
-      concatText: '',
-      isFinal: false,
-      resetCount: 0,
       newJSON: {},
       newJSONString: '',
 
     };
-  }
-
-  componentDidMount() {
-    let socket = this.props.socket;
-
-    socket.on('getJSON', (response) => {
-      let stringJSON = JSON.stringify(response, null, 4);
-      this.setState({newJSON: response});
-      this.setState({newJSONString: stringJSON});
+    getJSON((err, newJSON) => {
+      let stringJSON = JSON.stringify(newJSON, null, 4);
+      this.setState({
+        newJSON: newJSON,
+        newJSONString: stringJSON
+      });
     });
-  }
-
-  componentDidUpdate() {
-
-  }
-
-  componentWillUnmount(){
-    let socket = this.props.socket;
-    socket.off("getJSON");
   }
 
   render() {

@@ -5,7 +5,7 @@ import { withStyles } from '@material-ui/core/styles';
 import Typography from '@material-ui/core/Typography';
 import Paper from '@material-ui/core/Paper';
 import Grid from '@material-ui/core/Grid';
-import { getTranscriptFromJSON, requestRestarted } from './api.js';
+import { getTranscriptFromJSON } from './api.js';
 
 const styles = theme => ({
   paper: {
@@ -60,70 +60,97 @@ class MultilineOutput extends React.Component {
       transcriptList: [],
       transcriptCounter: 0,
       transcriptObject: {},
-      restartCounter: 1,
+      restartCounter: 0,
     };
 
     getTranscriptFromJSON((err, transcriptObject) => {
-      //console.log(JSON.stringify(transcriptObject, null, 4));
+      console.log(JSON.stringify(transcriptObject, null, 4));
 
       this.setState({transcriptObject: transcriptObject});
 
       this.state.transcriptList[this.state.transcriptCounter] = transcriptObject;
-      //console.log(JSON.stringify(this.state.transcriptList[this.state.transcriptCounter]));
+      console.log(JSON.stringify(this.state.transcriptList[this.state.transcriptCounter]));
 
-      if (transcriptObject.isFinal){
+      if (transcriptObject.transcript != undefined){
 
-        this.setState({transcriptCounter: this.state.transcriptCounter + 1});
-
-      }
-    });
-
-    requestRestarted((err, restartObject) => {
-      console.log('at first ' + JSON.stringify(this.state.transcriptList, null, 4));
-
-      console.log(JSON.stringify(this.state.transcriptList[this.state.transcriptCounter], null, 4));
-
-      if(this.state.transcriptList[this.state.transcriptCounter] && !this.state.transcriptList[this.state.transcriptCounter].isFinal){
-        //console.log("last object is not final then I guess");
-        this.setState({transcriptCounter: this.state.transcriptCounter + 1}, () => {
-          console.log(this.state.transcriptCounter);
+        this.setState({
+          outputText:
+            <div>
+              {this.state.concatText}
+              <div className={classes.pendingText}>
+                {transcriptObject.transcript}
+              </div>
+            </div>
         });
 
+        if (transcriptObject.isFinal){
+
+          this.setState({transcriptCounter: this.state.transcriptCounter + 1});
+
+          this.setState({
+            concatText:
+              <div className={classes.wrapperDiv}>
+                {this.state.concatText}
+                <div className={classes.finalText}>
+                  {transcriptObject.transcript}
+                </div>
+              </div>,
+          }, () => {
+            this.setState({outputText: <div>{this.state.concatText}</div>});
+          });
+        }
       }
 
-      restartObject.transcript = restartObject.transcript + ' ' + this.state.restartCounter;
 
+
+
+    });
+  }
+
+  componentDidMount() {
+    const { classes } = this.props;
+    let socket = this.props.socket;
+
+    socket.on('resetStreamOccurred', (data) => {
+      console.log("last object " + JSON.stringify(this.state.transcriptList[this.state.transcriptCounter-1]));
+      if(!this.state.transcriptList[this.state.transcriptCounter-1].isFinal){
+        console.log("last object not final then I guess");
+        this.setState({transcriptCounter: this.state.transcriptCounter + 1});
+      }
       this.setState({restartCounter: this.state.restartCounter + 1});
-
+      let restartObject = {
+        transcript: 'Restart ' + this.state.restartCounter,
+        ifFinal: true,
+        startTime: null,
+        endTime: null,
+        isRestart: true,
+      };
       this.state.transcriptList[this.state.transcriptCounter] = restartObject;
-
       this.setState({transcriptCounter: this.state.transcriptCounter + 1});
-      console.log('at last ' + JSON.stringify(this.state.transcriptList, null, 4));
+
+      //console.log("stream reset");
+/*      this.setState({
+          concatText:
+            <div className={classes.wrapperDiv}>
+              {this.state.concatText}
+              <div className={classes.resetIndicator}>
+                <Typography variant='h6'>Restart</Typography>
+              </div>
+            </div>,
+      }, () => {
+        this.setState({outputText: <div>{this.state.concatText}</div>});
+      });*/
     });
   }
 
   render() {
     const { classes } = this.props;
-    const transcriptList = this.state.transcriptList;
-    const transcriptDivs = transcriptList.map((transcript) => {
-      let uniqueKey = transcript.startTime + transcript.transcript + transcript.endTime;
-      let text =  <>{transcript.transcript}<Typography variant='caption' align='left'>time: {transcript.startTime}ms - {transcript.endTime}ms</Typography></>;
-      if (transcript.isRestart){
-        return( <div key={uniqueKey} className={classes.resetIndicator}>{text}</div>);
-      }
-      else if(transcript.isFinal){
-        return( <div key={uniqueKey} className={classes.finalText}>{text}</div>);
-      }
-      else {
-        return( <div key={uniqueKey} className={classes.pendingText}>{text}</div>);
-      }
-    });
 
     return (
       <div>
         <Paper elevation={1} className={classes.paper} id="Transcript" ref="Transcript">
-          <Typography variant="subtitle1">
-             {transcriptDivs}
+          <Typography variant="h6">
+            {this.state.outputText}
           </Typography>
         </Paper>
       </div>

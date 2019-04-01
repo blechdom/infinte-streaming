@@ -3,137 +3,27 @@ import PropTypes from 'prop-types';
 import ReactDOM from 'react-dom';
 import { withStyles } from '@material-ui/core/styles';
 import InputLabel from '@material-ui/core/InputLabel';
-import FormControl from '@material-ui/core/FormControl';
 import Select from '@material-ui/core/Select';
-import Grid from '@material-ui/core/Grid';
-import { getVoiceList } from './api';
+import {setSTTLanguageCode} from './api.js';
 
 class LanguageSelects extends React.Component {
 
-  _isMounted = false;
-
   constructor(props) {
     super(props);
-    let socket = this.props.socket;
     this.state = {
-      labelWidth: 0,
-      languageCode: 'fr-FR',
       sttLanguage: 'en-US',
-      voices: [],
-      voiceSynth: '',
-      voiceSynthOptions: '',
-      voiceType: '',
-      voiceTypes: [],
-      voiceTypeOptions: '',
     };
-    this.resetParentMic = this.resetParentMic.bind(this);
   }
 
-  componentDidMount() {
-    this._isMounted = true;
-
-    this.setState({
-      labelWidth: ReactDOM.findDOMNode(this.InputLabelRef).offsetWidth,
-    });
-
-    getVoiceList((err, voicelist) => {
-      if(this._isMounted){
-        this.setState({ voices: voicelist }, () => this.populateVoiceSynthSelect());
-      }
-    });
-  }
-
-  componentWillUnmount(){
-    this._isMounted = false;
-  }
   handleSTTChange = (event) => {
-    console.log("handle stt language change " + event.target.value);
-    this.resetParentMic();
-    this.setState({ sttLanguage: event.target.value }, () => this.emitSTTCode());
+    this.setState({ sttLanguage: event.target.value }, () =>    setSTTLanguageCode(this.state.sttLanguage));
   };
-  handleLanguageChange = (event) => {
-    console.log("handle Language change " + event.target.value);
-    this.resetParentMic();
-    this.setState({languageCode: event.target.value }, () => this.populateVoiceSynthSelect());
-  };
-  handleSynthChange = (event) => {
-    this.resetParentMic();
-    console.log("handle synth change " + event.target.value);
-    this.setState({ voiceSynth: event.target.value}, () => this.populateVoiceTypeSelect());
-  };
-  handleVoiceChange = (event) => {
-    this.resetParentMic();
-    console.log("handle voice change " + event.target.value);
-    this.setState({ voiceType: event.target.value }, () => this.emitVoiceCode());
-  };
-  resetParentMic(){
-    console.log("reset parent mic");
-    this.props.resetMic();
-  }
-
-  emitVoiceCode(){
-    let voiceType = this.state.voiceType;
-    console.log("emitting voice code");
-    let socket = this.props.socket;
-    socket.emit("voiceCode", voiceType);
-  }
-
-  emitSTTCode(){
-    let sttCode = this.state.sttLanguage;
-    let socket = this.props.socket;
-    socket.emit("sttLanguageCode", sttCode);
-  }
-  populateVoiceSynthSelect(){
-    let languageCode = this.state.languageCode;
-    console.log("populate synth with language code " + languageCode);
-    let voiceObjects = [];
-    let voicelist = this.state.voices;
-    voiceObjects = voicelist.find(x => x.languageCode === languageCode).languageTypes;
-
-    let voiceSynthOptionItems = voiceObjects.map((voiceSynth) =>
-      <option key={voiceSynth.voiceSynth} value={voiceSynth.voiceSynth}>{voiceSynth.voiceSynth}</option>
-    );
-    this.setState({voiceTypes: voiceObjects});
-    this.setState({voiceSynthOptions: voiceSynthOptionItems});
-    if(voiceSynthOptionItems.length>1){
-      this.setState({voiceSynth: voiceSynthOptionItems[1].key}, () => this.populateVoiceTypeSelect());
-    }
-    else {
-      this.setState({voiceSynth: voiceSynthOptionItems[0].key}, () => this.populateVoiceTypeSelect());
-    }
-  }
-  populateVoiceTypeSelect(){
-    let voiceSynth = this.state.voiceSynth;
-    let voiceObjects, voiceTypeOptionItems = [];
-
-    let voicelist = this.state.voiceTypes;
-    voiceObjects = voicelist.find(x => x.voiceSynth === voiceSynth).voiceTypes;
-
-    voiceTypeOptionItems = voiceObjects.map((voiceType) =>
-      <option key={voiceType.voiceCode} value={voiceType.voiceCode}>{voiceType.voiceName}</option>
-    );
-
-
-    this.setState({voiceTypeOptions: voiceTypeOptionItems});
-    if((this.state.languageCode=='en-US') && (voiceSynth=='Wavenet')){
-      this.setState({voiceType: "en-US-Wavenet-D"});
-      let event = { target: { value: 'en-US-Wavenet-D'}};
-        this.handleVoiceChange(event);
-    }
-    else{
-      this.setState({voiceType: voiceTypeOptionItems[0].key});
-      let event = { target: { value: voiceTypeOptionItems[0].key}};
-        this.handleVoiceChange(event);
-    }
-  }
 
   render() {
 
     return (
       <div>
-              <InputLabel ref={ref => {
-                this.InputLabelRef = ref;
-              }} htmlFor="stt-language">Language</InputLabel>
+              <InputLabel htmlFor="stt-language">Language</InputLabel>
               <Select
                 native
                 value={this.state.sttLanguage}

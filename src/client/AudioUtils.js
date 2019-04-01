@@ -1,4 +1,4 @@
-import {socket, ss, stream} from './api';
+import {socket, startStreamingServer, stopStreamingServer} from './api';
 
 let bufferSize = 2048;
 let processor;
@@ -10,7 +10,8 @@ const constraints = {
   video: false,
 };
 
-function startStreaming(context) {
+function startStreaming(context) {socket.emit('stopStreaming', true);
+  socket.emit('startStreaming', true);
   bufferSize = 2048;
   processor = null;
   input = null;
@@ -43,6 +44,7 @@ function microphoneProcess(e) {
 }
 
 function stopStreaming(context) {
+  socket.emit('stopStreaming', true);
   const track = globalStream.getTracks()[0];
   track.stop();
   if (input) {
