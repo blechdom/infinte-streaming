@@ -1,0 +1,5 @@
+node_modules
+dist
+package-lock.json
+audio/*mp3
+speechtextspeech-c1ffadb865de.json
